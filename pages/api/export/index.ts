@@ -3,6 +3,7 @@ import { getServerSession } from 'next-auth/next';
 import { authOptions } from '../auth/[...nextauth]';
 import dbConnect from '@/lib/db';
 import LessonRecord from '@/lib/models/LessonRecord';
+import moment from 'moment-timezone';
 
 export default async function handler(
   req: NextApiRequest,
@@ -28,11 +29,16 @@ export default async function handler(
       return res.status(400).json({ message: '请提供起始和结束日期' });
     }
 
+    // 将起始日期设置为当天的开始时间（北京时间 00:00:00）
+    const start = moment.tz(startDate as string, 'YYYY-MM-DD', 'Asia/Shanghai').startOf('day').toDate();
+    // 将结束日期设置为当天的结束时间（北京时间 23:59:59.999）
+    const end = moment.tz(endDate as string, 'YYYY-MM-DD', 'Asia/Shanghai').endOf('day').toDate();
+
     // 查询指定日期范围的课时记录
     const records = await LessonRecord.find({
       date: {
-        $gte: new Date(startDate as string),
-        $lte: new Date(endDate as string),
+        $gte: start,
+        $lte: end,
       },
     }).sort({ date: 1 });
 
@@ -42,8 +48,8 @@ export default async function handler(
     let csvContent = BOM + '课程名称,年级,日期,课时数量,备注\n';
 
     records.forEach(record => {
-      // 确保日期格式化正确
-      const date = new Date(record.date).toISOString().split('T')[0]; // YYYY-MM-DD 格式
+      // 确保日期格式化正确 - 使用moment格式化为北京时间
+      const date = moment(record.date).tz('Asia/Shanghai').format('YYYY-MM-DD');
       
       // 确保数据中的逗号和换行符被适当处理
       const courseName = record.courseName ? `"${record.courseName.replace(/"/g, '""')}"` : '""';
