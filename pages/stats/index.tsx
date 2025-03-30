@@ -131,98 +131,6 @@ export default function StatsPage() {
     });
   };
 
-  // 准备饼图数据 - 月度课程分布
-  const getMonthlyCourseChartData = () => {
-    if (!stats || !stats.courseStats || stats.courseStats.length === 0) {
-      return {
-        labels: ['暂无数据'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['#e0e0e0'],
-        }]
-      };
-    }
-
-    const labels = stats.courseStats.map(course => course.courseName);
-    return {
-      labels: processLabels(labels),
-      datasets: [{
-        data: stats.courseStats.map(course => course.totalHours),
-        backgroundColor: generateColors(stats.courseStats.length),
-        borderWidth: 1
-      }]
-    };
-  };
-
-  // 准备饼图数据 - 月度年级分布
-  const getMonthlyGradeChartData = () => {
-    if (!stats || !stats.gradeStats || stats.gradeStats.length === 0) {
-      return {
-        labels: ['暂无数据'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['#e0e0e0'],
-        }]
-      };
-    }
-
-    const labels = stats.gradeStats.map(grade => grade.grade);
-    return {
-      labels: processLabels(labels),
-      datasets: [{
-        data: stats.gradeStats.map(grade => grade.totalHours),
-        backgroundColor: generateColors(stats.gradeStats.length),
-        borderWidth: 1
-      }]
-    };
-  };
-
-  // 准备饼图数据 - 全部课程分布
-  const getAllTimeCourseChartData = () => {
-    if (!stats || !stats.allTimeCourseStats || stats.allTimeCourseStats.length === 0) {
-      return {
-        labels: ['暂无数据'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['#e0e0e0'],
-        }]
-      };
-    }
-
-    const labels = stats.allTimeCourseStats.map(course => course.courseName);
-    return {
-      labels: processLabels(labels),
-      datasets: [{
-        data: stats.allTimeCourseStats.map(course => course.totalHours),
-        backgroundColor: generateColors(stats.allTimeCourseStats.length),
-        borderWidth: 1
-      }]
-    };
-  };
-
-  // 准备饼图数据 - 全部年级分布
-  const getAllTimeGradeChartData = () => {
-    if (!stats || !stats.allTimeGradeStats || stats.allTimeGradeStats.length === 0) {
-      return {
-        labels: ['暂无数据'],
-        datasets: [{
-          data: [1],
-          backgroundColor: ['#e0e0e0'],
-        }]
-      };
-    }
-
-    const labels = stats.allTimeGradeStats.map(grade => grade.grade);
-    return {
-      labels: processLabels(labels),
-      datasets: [{
-        data: stats.allTimeGradeStats.map(grade => grade.totalHours),
-        backgroundColor: generateColors(stats.allTimeGradeStats.length),
-        borderWidth: 1
-      }]
-    };
-  };
-
   // 图表配置
   const pieOptions = {
     plugins: {
@@ -234,15 +142,7 @@ export default function StatsPage() {
           font: {
             size: 11 // 减小字体大小
           },
-          // 允许图例文本换行显示，而不是截断
-          generateLabels: function(chart: any) {
-            const defaultLabels = ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
-            return defaultLabels;
-          },
-          // 自定义图例文本渲染，支持换行
-          textAlign: 'left' as const,
-          color: '#666',
-          // 增加行高，为换行文本留出空间
+          // 移除会导致问题的generateLabels自定义函数
           usePointStyle: true,
           pointStyle: 'circle'
         }
@@ -261,7 +161,69 @@ export default function StatsPage() {
     },
     maintainAspectRatio: false
   };
-  
+
+  // 响应式的图表配置，根据屏幕宽度调整
+  const getResponsivePieOptions = () => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    
+    return {
+      ...pieOptions,
+      plugins: {
+        ...pieOptions.plugins,
+        legend: {
+          ...pieOptions.plugins.legend,
+          position: isMobile ? 'bottom' as const : 'right' as const
+        }
+      }
+    };
+  };
+
+  // 为图表准备数据，处理长标签的简单方法
+  const preparePieChartData = (data: CourseData[] | GradeData[], 
+                               labelField: 'courseName' | 'grade', 
+                               valueField: 'totalHours') => {
+    if (!data || data.length === 0) {
+      return {
+        labels: ['暂无数据'],
+        datasets: [{
+          data: [1],
+          backgroundColor: ['#e0e0e0'],
+        }]
+      };
+    }
+
+    // 创建正常的标签，不进行换行处理
+    const labels = data.map(item => labelField === 'courseName' 
+      ? (item as CourseData).courseName
+      : (item as GradeData).grade);
+    
+    return {
+      labels,
+      datasets: [{
+        data: data.map(item => item[valueField]),
+        backgroundColor: generateColors(data.length),
+        borderWidth: 1
+      }]
+    };
+  };
+
+  // 修改各个图表数据函数，使用新的数据准备方法
+  const getMonthlyCourseChartData = () => {
+    return preparePieChartData(stats?.courseStats || [], 'courseName', 'totalHours');
+  };
+
+  const getMonthlyGradeChartData = () => {
+    return preparePieChartData(stats?.gradeStats || [], 'grade', 'totalHours');
+  };
+
+  const getAllTimeCourseChartData = () => {
+    return preparePieChartData(stats?.allTimeCourseStats || [], 'courseName', 'totalHours');
+  };
+
+  const getAllTimeGradeChartData = () => {
+    return preparePieChartData(stats?.allTimeGradeStats || [], 'grade', 'totalHours');
+  };
+
   return (
     <Layout title="统计分析 - 教师课时管理系统">
       <div className="mx-auto max-w-6xl">
@@ -311,7 +273,7 @@ export default function StatsPage() {
                 <div className="bg-white p-4 rounded-md shadow">
                   <h3 className="text-lg font-medium mb-2 text-center">课程分布</h3>
                   <div className="h-64">
-                    <Pie data={getAllTimeCourseChartData()} options={pieOptions} />
+                    <Pie data={getAllTimeCourseChartData()} options={getResponsivePieOptions()} />
                   </div>
                 </div>
 
@@ -319,7 +281,7 @@ export default function StatsPage() {
                 <div className="bg-white p-4 rounded-md shadow">
                   <h3 className="text-lg font-medium mb-2 text-center">年级分布</h3>
                   <div className="h-64">
-                    <Pie data={getAllTimeGradeChartData()} options={pieOptions} />
+                    <Pie data={getAllTimeGradeChartData()} options={getResponsivePieOptions()} />
                   </div>
                 </div>
               </div>
@@ -344,7 +306,7 @@ export default function StatsPage() {
                 <div className="bg-white p-4 rounded-md shadow">
                   <h3 className="text-lg font-medium mb-2 text-center">课程分布</h3>
                   <div className="h-64">
-                    <Pie data={getMonthlyCourseChartData()} options={pieOptions} />
+                    <Pie data={getMonthlyCourseChartData()} options={getResponsivePieOptions()} />
                   </div>
                 </div>
 
@@ -352,7 +314,7 @@ export default function StatsPage() {
                 <div className="bg-white p-4 rounded-md shadow">
                   <h3 className="text-lg font-medium mb-2 text-center">年级分布</h3>
                   <div className="h-64">
-                    <Pie data={getMonthlyGradeChartData()} options={pieOptions} />
+                    <Pie data={getMonthlyGradeChartData()} options={getResponsivePieOptions()} />
                   </div>
                 </div>
               </div>
