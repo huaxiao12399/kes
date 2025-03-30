@@ -216,8 +216,10 @@ export default function RecordsPage() {
                   <tbody className="divide-y divide-gray-200 bg-white">
                     {records.map((record) => (
                       <tr key={record._id} className="hover:bg-gray-50">
-                        <td className="overflow-hidden text-ellipsis whitespace-nowrap px-2 py-1.5 text-gray-900">
-                          {record.courseName}
+                        <td className="px-2 py-1.5 text-gray-900 sm:whitespace-nowrap sm:overflow-hidden sm:text-ellipsis max-w-[120px]">
+                          <div className="break-words sm:truncate">
+                            {record.courseName}
+                          </div>
                         </td>
                         <td className="overflow-hidden text-ellipsis whitespace-nowrap px-2 py-1.5 text-gray-900">
                           {formatDate(record.date)}
