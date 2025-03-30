@@ -38,8 +38,14 @@ export default async function handler(
       // 日期范围筛选
       if (startDate || endDate) {
         query.date = {};
-        if (startDate) query.date.$gte = moment.tz(startDate as string, 'Asia/Shanghai').toDate();
-        if (endDate) query.date.$lte = moment.tz(endDate as string, 'Asia/Shanghai').endOf('day').toDate();
+        if (startDate) {
+          // 将起始日期设置为当天的开始时间（北京时间 00:00:00）
+          query.date.$gte = moment.tz(startDate as string, 'YYYY-MM-DD', 'Asia/Shanghai').startOf('day').toDate();
+        }
+        if (endDate) {
+          // 将结束日期设置为当天的结束时间（北京时间 23:59:59.999）
+          query.date.$lte = moment.tz(endDate as string, 'YYYY-MM-DD', 'Asia/Shanghai').endOf('day').toDate();
+        }
       }
       
       const pageNumber = parseInt(page as string, 10);
