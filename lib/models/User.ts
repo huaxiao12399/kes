@@ -5,6 +5,7 @@ export interface IUser extends mongoose.Document {
   username: string;
   password: string;
   comparePassword: (password: string) => Promise<boolean>;
+  isModified(path: string): boolean;
 }
 
 const UserSchema = new mongoose.Schema({
@@ -21,13 +22,11 @@ const UserSchema = new mongoose.Schema({
 
 // 密码加密
 UserSchema.pre('save', async function(next) {
-  const user = this as IUser;
-  
-  if (!user.isModified('password')) return next();
+  if (!this.isModified('password')) return next();
   
   try {
     const salt = await bcrypt.genSalt(10);
-    user.password = await bcrypt.hash(user.password, salt);
+    this.password = await bcrypt.hash(this.password, salt);
     next();
   } catch (error) {
     next(error as Error);
