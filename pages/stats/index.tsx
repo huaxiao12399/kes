@@ -98,6 +98,39 @@ export default function StatsPage() {
   
   const monthOptions = generateMonthOptions();
   
+  // 在饼图数据中，处理课程名称使其支持换行
+  const processLabels = (labels: string[]) => {
+    const isMobile = typeof window !== 'undefined' && window.innerWidth < 640;
+    return labels.map(label => {
+      if (!label) return label;
+      
+      // 移动设备上处理超过6个字符的名称，每6个字符添加一个换行符
+      if (isMobile && label.length > 6) {
+        let result = '';
+        for (let i = 0; i < label.length; i++) {
+          result += label[i];
+          if ((i + 1) % 6 === 0 && i < label.length - 1) {
+            result += '\n';
+          }
+        }
+        return result;
+      } 
+      // 大屏幕上处理超过10个字符的名称，每10个字符添加一个换行符
+      else if (!isMobile && label.length > 10) {
+        let result = '';
+        for (let i = 0; i < label.length; i++) {
+          result += label[i];
+          if ((i + 1) % 10 === 0 && i < label.length - 1) {
+            result += '\n';
+          }
+        }
+        return result;
+      }
+      
+      return label;
+    });
+  };
+
   // 准备饼图数据 - 月度课程分布
   const getMonthlyCourseChartData = () => {
     if (!stats || !stats.courseStats || stats.courseStats.length === 0) {
@@ -110,8 +143,9 @@ export default function StatsPage() {
       };
     }
 
+    const labels = stats.courseStats.map(course => course.courseName);
     return {
-      labels: stats.courseStats.map(course => course.courseName),
+      labels: processLabels(labels),
       datasets: [{
         data: stats.courseStats.map(course => course.totalHours),
         backgroundColor: generateColors(stats.courseStats.length),
@@ -132,8 +166,9 @@ export default function StatsPage() {
       };
     }
 
+    const labels = stats.gradeStats.map(grade => grade.grade);
     return {
-      labels: stats.gradeStats.map(grade => grade.grade),
+      labels: processLabels(labels),
       datasets: [{
         data: stats.gradeStats.map(grade => grade.totalHours),
         backgroundColor: generateColors(stats.gradeStats.length),
@@ -154,8 +189,9 @@ export default function StatsPage() {
       };
     }
 
+    const labels = stats.allTimeCourseStats.map(course => course.courseName);
     return {
-      labels: stats.allTimeCourseStats.map(course => course.courseName),
+      labels: processLabels(labels),
       datasets: [{
         data: stats.allTimeCourseStats.map(course => course.totalHours),
         backgroundColor: generateColors(stats.allTimeCourseStats.length),
@@ -176,8 +212,9 @@ export default function StatsPage() {
       };
     }
 
+    const labels = stats.allTimeGradeStats.map(grade => grade.grade);
     return {
-      labels: stats.allTimeGradeStats.map(grade => grade.grade),
+      labels: processLabels(labels),
       datasets: [{
         data: stats.allTimeGradeStats.map(grade => grade.totalHours),
         backgroundColor: generateColors(stats.allTimeGradeStats.length),
@@ -191,6 +228,24 @@ export default function StatsPage() {
     plugins: {
       legend: {
         position: 'right' as const,
+        labels: {
+          boxWidth: 15, // 减小图例颜色框的宽度
+          padding: 10, // 增加图例项之间的间距
+          font: {
+            size: 11 // 减小字体大小
+          },
+          // 允许图例文本换行显示，而不是截断
+          generateLabels: function(chart: any) {
+            const defaultLabels = ChartJS.defaults.plugins.legend.labels.generateLabels(chart);
+            return defaultLabels;
+          },
+          // 自定义图例文本渲染，支持换行
+          textAlign: 'left' as const,
+          color: '#666',
+          // 增加行高，为换行文本留出空间
+          usePointStyle: true,
+          pointStyle: 'circle'
+        }
       },
       tooltip: {
         callbacks: {
